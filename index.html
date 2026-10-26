@@ -150,6 +150,11 @@ footer a{color:inherit}
   body{background:#fff;padding:0} main{max-width:none;padding:0}
   .qrgrid{grid-template-columns:repeat(2,1fr)} .qrcard{border:1px solid #999}
 }
+#usage{display:grid;gap:10px;margin-top:4px}
+.urow{border:1.5px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
+.urow .un{font-weight:700;font-size:.9rem;margin-bottom:8px;color:var(--accent)}
+.urow .two{display:grid;grid-template-columns:1fr 7.5em;gap:8px;align-items:center}
+.urow .w{display:flex;align-items:center;gap:6px}.urow .w span{color:var(--muted)}
 dialog{border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink);padding:18px;width:min(92vw,420px)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
 .swatches{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
@@ -253,7 +258,7 @@ async function loadStockMaterials(){
 let syncing = false, syncState = '', keyError = false;
 function toServer(e){
   return {id:e.id, created:e.created, launch:e.launch, machine:e.machine, type:e.type, user:e.user, status:e.status,
-    duration:e.duration, durationKind:e.durationKind, nozzles:e.nozzles, materials:e.materials, volume:e.volume,
+    duration:e.duration, durationKind:e.durationKind, nozzles:e.nozzles, usage:e.usage||[], weight:e.weight===undefined?'':e.weight, materials:e.materials, volume:e.volume,
     laser:e.laser, lens:e.lens, note:e.note};
 }
 function setBadge(){
@@ -335,7 +340,7 @@ let tab = 'new', draft = null;
 function blankDraft(machineId){
   const now = new Date(); now.setSeconds(0,0);
   const d = {id:null, created:null, machineId:machineId||'', user:lsGet(LS.user,''), launch:toLocalInput(now), status:'Lancé',
-    h:'', min:'', durationKind:'planned', nozzles:[], materials:[], material:'', volume:'', laser:'', lens:'', note:'', picking:!machineId, errors:[]};
+    h:'', min:'', durationKind:'planned', nozzles:[], lines:{}, material:'', volume:'', laser:'', lens:'', note:'', picking:!machineId, errors:[]};
   applyMachineDefaults(d);
   return d;
 }
@@ -344,9 +349,24 @@ function draftFromEntry(e, asCopy){
   const d = {id: asCopy ? null : e.id, created: asCopy ? null : e.created, machineId:e.machineId, user:e.user,
     launch: asCopy ? toLocalInput(now) : toLocalInput(new Date(e.launch)), status: asCopy ? 'Lancé' : e.status,
     h: Math.floor(e.duration/60) || '', min: (e.duration%60) || '', durationKind:e.durationKind,
-    nozzles:(e.nozzles||[]).slice(), materials:(e.materials||[]).slice(), material:(e.materials||[])[0]||'',
+    nozzles:(e.nozzles||[]).slice(), lines:linesFromEntry(e), material:(e.materials||[])[0]||'',
     volume: e.volume==null ? '' : e.volume, laser:e.laser||'', lens:e.lens||'', note:e.note||'', picking:false, errors:[], copy:!!asCopy};
   return d;
+}
+function linesFromEntry(e){
+  const L = {};
+  if (e.usage && e.usage.length) e.usage.forEach(u => L[u.nozzle] = {material:u.material||'', weight:u.weight===''||u.weight==null ? '' : String(u.weight)});
+  else (e.nozzles||[]).forEach((n,i) => L[n] = {material:(e.materials||[])[i] || (e.materials||[])[0] || '', weight:''});
+  return L;
+}
+function usageHtml(){
+  if (!draft.nozzles.length) return '<div class="hint">Choisis d\u2019abord la ou les buses ci-dessus.</div>';
+  return draft.nozzles.map(n => {
+    const l = draft.lines[n] || {};
+    return '<div class="urow" data-n="' + esc(n) + '"><div class="un">' + esc(n) + '</div><div class="two">' +
+      '<input data-u="material" list="dl-mat" autocomplete="off" placeholder="Matériau" value="' + esc(l.material||'') + '" aria-label="Matériau de ' + esc(n) + '">' +
+      '<div class="w"><input data-u="weight" type="number" inputmode="decimal" min="0" step="any" placeholder="Masse" value="' + esc(l.weight||'') + '" aria-label="Masse utilisée avec ' + esc(n) + '"><span>g</span></div></div></div>';
+  }).join('');
 }
 function applyMachineDefaults(d){
   const m = machineById(d.machineId); if (!m) return;
@@ -383,16 +403,6 @@ function singleMaterialBlock(m, label, hint){
     '<datalist id="dl-mat">' + materialSuggestions(m.type).map(s => '<option value="' + esc(s) + '">').join('') + '</datalist>' +
     '<div class="chips" style="margin-top:8px">' + sugg.map(s => '<button type="button" class="chip sug" data-act="sugmat" data-v="' + esc(s) + '">' + esc(s) + '</button>').join('') + '</div>';
 }
-function multiMaterialBlock(m){
-  const sel = draft.materials, sugg = materialSuggestions(m.type).filter(s => !sel.some(x => x.toLowerCase() === s.toLowerCase())).slice(0, 10);
-  return '<div class="lab">Matériau(x) imprimé(s) <span class="hint">(plusieurs possibles)</span></div>' +
-    '<div class="chips" style="margin-bottom:8px">' + sel.map(s => '<button type="button" class="chip" aria-pressed="true" data-act="rmmat" data-v="' + esc(s) + '">' + esc(s) + '<span class="x">✕</span></button>').join('') + '</div>' +
-    '<div class="inline"><input id="f-newmat" list="dl-mat" autocomplete="off" placeholder="Ajouter un matériau" aria-label="Ajouter un matériau">' +
-    '<button type="button" class="btn" data-act="addmat">Ajouter</button></div>' +
-    '<datalist id="dl-mat">' + materialSuggestions(m.type).map(s => '<option value="' + esc(s) + '">').join('') + '</datalist>' +
-    '<div class="chips" style="margin-top:8px">' + sugg.map(s => '<button type="button" class="chip sug" data-act="sugaddmat" data-v="' + esc(s) + '">+ ' + esc(s) + '</button>').join('') + '</div>';
-}
-
 function renderForm(){
   const m = machineById(draft.machineId);
   const editing = !!draft.id;
@@ -423,7 +433,8 @@ function renderForm(){
       const list = uniqCI((m.nozzles || ['0.4 mm']).concat(draft.nozzles));
       h += '<div class="lab">Buse(s) utilisée(s) <span class="hint">(plusieurs possibles)</span></div><div class="chips">' +
         list.map(n => chipBtn('nozzle', n, draft.nozzles.includes(n))).join('') + '</div>';
-      h += durationBlock(m) + multiMaterialBlock(m);
+      h += '<div class="lab">Matériau et masse utilisés, par buse <span class="hint">(masse indiquée par le slicer, facultative)</span></div><div id="usage">' + usageHtml() + '</div>' +
+        '<datalist id="dl-mat">' + materialSuggestions('fdm').map(x => '<option value="' + esc(x) + '">').join('') + '</datalist>' + durationBlock(m);
     }
     if (m.type === 'sla'){
       h += durationBlock(m) + singleMaterialBlock(m, 'Matériau (résine)') +
@@ -466,7 +477,7 @@ function validate(m){
   if (!(dur > 0)) e.push('Indique la durée.');
   if (m.type === 'fdm'){
     if (!draft.nozzles.length) e.push('Indique la ou les buses utilisées.');
-    if (!draft.materials.length) e.push('Indique le ou les matériaux imprimés.');
+    draft.nozzles.forEach(n => { if (!((draft.lines[n]||{}).material||'').trim()) e.push('Indique le matériau de la buse « ' + n + ' ».'); });
   }
   if (m.type === 'sla'){
     if (!draft.material.trim()) e.push('Indique le matériau (résine).');
@@ -492,6 +503,7 @@ function save(){
   }
   const now = new Date().toISOString(), old = draft.id ? entries.find(x => x.id === draft.id) : null;
   const t = m.type;
+  const usage = t !== 'fdm' ? [] : draft.nozzles.map(n => { const l = draft.lines[n] || {}, w = Number(String(l.weight||'').replace(',', '.')); return {nozzle:n, material:(l.material||'').trim(), weight: l.weight !== '' && l.weight != null && isFinite(w) && w >= 0 ? w : ''}; });
   const e = {
     id: draft.id || newId(), created: old ? old.created : now, updated: now,
     launch: new Date(draft.launch).toISOString(), machineId: m.id, machine: m.name, type: t,
@@ -499,7 +511,8 @@ function save(){
     duration: (Number(draft.h)||0)*60 + (Number(draft.min)||0),
     durationKind: (t === 'laser' || t === 'usinage') ? draft.durationKind : 'planned',
     nozzles: t === 'fdm' ? draft.nozzles.slice() : [],
-    materials: t === 'fdm' ? draft.materials.slice() : (t === 'sla' || t === 'sls' || t === 'usinage' || t === 'laser') && draft.material.trim() ? [draft.material.trim()] : [],
+    usage: usage, weight: usage.some(u => u.weight !== '') ? Math.round(usage.reduce((a,u) => a + (u.weight||0), 0)*100)/100 : '',
+    materials: t === 'fdm' ? uniqCI(usage.map(u => u.material)) : (t === 'sla' || t === 'sls' || t === 'usinage' || t === 'laser') && draft.material.trim() ? [draft.material.trim()] : [],
     volume: (t === 'sla' || t === 'sls') ? Number(String(draft.volume).replace(',', '.')) : '',
     laser: t === 'laser' ? draft.laser : '', lens: t === 'laser' ? draft.lens : '',
     note: draft.note.trim(), _dirty: true, _rev: ((old && old._rev) || 0) + 1
@@ -524,8 +537,13 @@ function renderList(){
     const rows = [];
     rows.push(['Lancement', fmtDate(e.launch)]);
     rows.push([e.type === 'usinage' ? 'Durée effective' : e.durationKind === 'effective' ? 'Durée effective' : 'Durée prévue', fmtDur(e.duration)]);
-    if (e.nozzles && e.nozzles.length) rows.push(['Buse(s)', e.nozzles.join(', ')]);
-    if (e.materials && e.materials.length) rows.push(['Matériau(x)', e.materials.join(', ')]);
+    if (e.usage && e.usage.length){
+      e.usage.forEach(u => rows.push([u.nozzle, u.material + (u.weight !== '' && u.weight != null ? ' · ' + String(u.weight).replace('.', ',') + ' g' : '')]));
+      if (e.usage.length > 1 && e.weight !== '' && e.weight != null) rows.push(['Masse totale', String(e.weight).replace('.', ',') + ' g']);
+    } else {
+      if (e.nozzles && e.nozzles.length) rows.push(['Buse(s)', e.nozzles.join(', ')]);
+      if (e.materials && e.materials.length) rows.push(['Matériau(x)', e.materials.join(', ')]);
+    }
     if (e.volume !== '' && e.volume != null) rows.push(['Volume', String(e.volume).replace('.', ',') + ' mL']);
     if (e.type === 'laser') rows.push(['Laser', e.laser + ' · lentille ' + e.lens]);
     if (e.note) rows.push(['Remarque', e.note]);
@@ -543,8 +561,12 @@ function renderList(){
 
 /* ---------- événements ---------- */
 view.addEventListener('input', ev => {
-  const f = ev.target.dataset && ev.target.dataset.f;
-  if (f && draft) draft[f] = ev.target.value;
+  const t = ev.target, f = t.dataset && t.dataset.f;
+  if (f && draft) draft[f] = t.value;
+  if (t.dataset && t.dataset.u && draft){
+    const row = t.closest('.urow'); if (!row) return;
+    const n = row.dataset.n; draft.lines[n] = Object.assign(draft.lines[n] || {}, {[t.dataset.u]: t.value});
+  }
 });
 function onClick(ev){
   const b = ev.target.closest('[data-act]'); if (!b) return;
@@ -554,12 +576,9 @@ function onClick(ev){
   else if (a === 'slash'){ draft.user = '/'; $('#f-user').value = '/'; }
   else if (a === 'now'){ const n = new Date(); n.setSeconds(0,0); draft.launch = toLocalInput(n); $('#f-launch').value = draft.launch; }
   else if (a === 'dkind'){ draft.durationKind = v; document.querySelectorAll('[data-act=dkind]').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v)); }
-  else if (a === 'nozzle'){ toggleIn(draft.nozzles, v); b.setAttribute('aria-pressed', draft.nozzles.includes(v)); }
+  else if (a === 'nozzle'){ toggleIn(draft.nozzles, v); b.setAttribute('aria-pressed', draft.nozzles.includes(v)); $('#usage').innerHTML = usageHtml(); }
   else if (a === 'laser' || a === 'lens'){ draft[a] = v; document.querySelectorAll('[data-act=' + a + ']').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v)); }
   else if (a === 'sugmat'){ draft.material = v; $('#f-mat').value = v; }
-  else if (a === 'sugaddmat'){ addMat(v, false); }
-  else if (a === 'addmat'){ const i = $('#f-newmat'); addMat(i.value, true); }
-  else if (a === 'rmmat'){ draft.materials = draft.materials.filter(x => x !== v); renderForm(); }
   else if (a === 'save') save();
   else if (a === 'cancel'){ draft = null; show('list'); }
   else if (a === 'edit' || a === 'copy'){
@@ -573,14 +592,8 @@ function onClick(ev){
   }
 }
 function toggleIn(arr, v){ const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); }
-function addMat(val, refocus){
-  val = String(val||'').trim(); if (!val) return;
-  if (!draft.materials.some(x => x.toLowerCase() === val.toLowerCase())) draft.materials.push(val);
-  renderForm(); if (refocus){ const i = $('#f-newmat'); if (i) i.focus(); }
-}
 view.addEventListener('click', onClick);
 bar.addEventListener('click', onClick);
-view.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.id === 'f-newmat'){ ev.preventDefault(); addMat(ev.target.value, true); } });
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   if (t.dataset.tab === 'new' && !draft) draft = blankDraft();
   show(t.dataset.tab);
