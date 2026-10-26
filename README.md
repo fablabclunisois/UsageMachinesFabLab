@@ -23,6 +23,7 @@ direct à ton tableur, et le script ne renvoie jamais les saisies : les noms des
 1. Dans le Sheet : *Extensions > Apps Script*. Supprime le contenu et colle le fichier **`Code.gs`**. Enregistre.
 2. *Paramètres du projet* (roue dentée) > *Propriétés du script* > *Ajouter* : nom `CLE_ACCES`, valeur = un code que tu inventes
    (lettres/chiffres, ex. `Fab8kQ2mZ7`). Il évite que n'importe qui qui trouverait l'adresse du script puisse y écrire.
+   Ajoute une seconde propriété `CODE_GESTIONNAIRE` (un autre code, que toi seul connais) : il protège la page d'impression des QR codes.
 3. *Déployer > Nouveau déploiement* > type **Application Web** :
    - Exécuter en tant que : **Moi**
    - Qui a accès : **Tout le monde**
@@ -39,9 +40,9 @@ direct à ton tableur, et le script ne renvoie jamais les saisies : les noms des
 3. L'adresse sera `https://TON-COMPTE.github.io/fablab-machines/`.
 
 ### 4. Les QR codes
-1. Ouvre une fois sur ton téléphone ou ordinateur :
-   `https://TON-COMPTE.github.io/fablab-machines/?k=TON_CODE_D_ACCES` (le code de l'étape 2.2), puis clique sur
-   **« QR codes à imprimer »** en bas de page (ou ajoute `&qr` à l'adresse).
+1. Ouvre une fois sur ton ordinateur : `https://TON-COMPTE.github.io/fablab-machines/?k=TON_CODE_D_ACCES`
+   (le code `CLE_ACCES`), puis ouvre `https://TON-COMPTE.github.io/fablab-machines/?qr` et saisis ton `CODE_GESTIONNAIRE`.
+   Cette page n'est liée nulle part dans l'appli.
 2. Tu obtiens un QR général et un QR par machine (la machine est alors déjà choisie). **Imprime-les** et colle
    chacun sur sa machine. Ils contiennent le code d'accès : à ne pas publier en ligne.
 3. Le premier scan enregistre le code dans le téléphone ; ensuite l'étudiant peut « Ajouter à l'écran d'accueil »

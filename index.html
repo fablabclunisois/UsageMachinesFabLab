@@ -121,7 +121,7 @@ footer a{color:inherit}
   </div>
 </header>
 <main id="view"></main>
-<footer id="foot"><a href="?qr">QR codes à imprimer</a> · v1</footer>
+<footer id="foot">v1</footer>
 <div class="savebar" id="bar" hidden></div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -539,6 +539,24 @@ function show(which){
 
 /* ---------- page des QR codes ---------- */
 function renderQR(){
+  document.title = 'Espace gestionnaire'; $('#hdr').hidden = true; bar.hidden = true; $('#foot').hidden = true;
+  view.innerHTML = '<div class="card"><h2>Espace gestionnaire</h2><form id="adm"><label for="g">Code gestionnaire</label>' +
+    '<input id="g" type="password" autocomplete="off" required><div id="gerr" class="errors" hidden></div>' +
+    '<button class="btn primary" style="margin-top:14px;width:100%">Afficher les QR codes</button></form></div>';
+  $('#adm').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const err = $('#gerr'); err.hidden = true;
+    try{
+      if (!CFG.scriptUrl) throw new Error('scriptUrl vide');
+      const r = await fetch(CFG.scriptUrl + '?action=admin&g=' + encodeURIComponent($('#g').value), {cache:'no-store'});
+      const j = await r.json();
+      if (j.ok) return showQR();
+      err.textContent = j.error === 'non-configure' ? 'Aucun CODE_GESTIONNAIRE n\u2019est défini dans le script Google.' : 'Code incorrect.';
+    }catch(e){ err.textContent = 'Vérification impossible (pas de connexion ?).'; }
+    err.hidden = false;
+  });
+}
+function showQR(){
   document.title = 'QR codes – ' + (CFG.titre || 'FabLab');
   $('#hdr').hidden = true; bar.hidden = true;
   const base = location.origin + location.pathname.replace(/index\.html$/, ''), key = getKey();
