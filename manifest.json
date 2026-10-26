@@ -2,7 +2,7 @@
   "name": "FabLab – Utilisation des machines",
   "short_name": "Machines",
   "description": "Enregistrer l'utilisation des machines du FabLab",
-  "id": "./",
+  "id": "fablab-machines-utilisation",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
