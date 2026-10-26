@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#c2410c"/>
-  <circle cx="256" cy="276" r="132" fill="none" stroke="#fff" stroke-width="30"/>
-  <rect x="226" y="96" width="60" height="34" rx="10" fill="#fff"/>
-  <path d="M256 276 L256 190" stroke="#fff" stroke-width="30" stroke-linecap="round"/>
-  <path d="M256 276 L318 312" stroke="#fff" stroke-width="30" stroke-linecap="round"/>
-  <circle cx="256" cy="276" r="16" fill="#fff"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#80276c"/><g transform="translate(256 256) scale(.86) translate(-256 -256)"><g transform="translate(222,238)"><polygon points="-40,-92 40,-92 28,-36 0,0 -28,-36" fill="#ffffff"/><rect x="-48" y="-96" width="96" height="14" rx="6" fill="#ffffff"/></g><circle cx="222" cy="262" r="10" fill="#ffa300"/><rect x="166" y="278" width="112" height="26" rx="12" fill="#ffa300" opacity="1"/><rect x="138" y="310" width="168" height="26" rx="12" fill="#ffffff" opacity="0.85"/><rect x="110" y="342" width="224" height="26" rx="12" fill="#ffffff" opacity="1"/><rect x="82" y="374" width="280" height="26" rx="12" fill="#ffffff" opacity="0.7"/><circle cx="388" cy="150" r="64" fill="#ffffff"/><circle cx="388" cy="150" r="46" fill="#80276c"/><path d="M388 150V118M388 150l24 14" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/><circle cx="388" cy="150" r="7" fill="#ffa300"/></g></svg>
