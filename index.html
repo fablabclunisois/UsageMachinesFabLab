@@ -235,16 +235,16 @@ function uniqCI(list){ const seen = new Set(), out = []; list.forEach(v => { con
 function materialSuggestions(type){
   const base = (CFG.materials && CFG.materials[type]) || [];
   const stock = lsGet(LS.stock, {});
-  const extra = type==='fdm' ? stock.filament : type==='sla' ? stock.resine : [];
+  const extra = type==='fdm' ? stock.filament : type==='sla' ? stock.resine : type==='laser' ? stock.plaque : [];
   return uniqCI(base.concat(extra || []));
 }
 async function loadStockMaterials(){
   if (!CFG.stockUrl) return;
   try{
     const r = await fetch(CFG.stockUrl, {cache:'no-cache'});
-    const j = await r.json(), out = {filament:[], resine:[]};
+    const j = await r.json(), out = {filament:[], resine:[], plaque:[]};
     (j.items||[]).forEach(it => { if (out[it.category] && it.material) out[it.category].push(it.material); });
-    out.filament = uniqCI(out.filament); out.resine = uniqCI(out.resine);
+    out.filament = uniqCI(out.filament); out.resine = uniqCI(out.resine); out.plaque = uniqCI(out.plaque);
     lsSet(LS.stock, out);
   }catch(e){ /* hors ligne : on garde la dernière liste connue */ }
 }
@@ -438,7 +438,7 @@ function renderForm(){
       const ls = m.lasers || CFG.lasers || [], ln = m.lenses || CFG.lenses || [];
       h += '<div class="lab">Laser utilisé</div><div class="chips">' + ls.map(v => chipBtn('laser', v, draft.laser === v)).join('') + '</div>' +
         '<div class="lab">Lentille utilisée</div><div class="chips">' + ln.map(v => chipBtn('lens', v, draft.lens === v)).join('') + '</div>' +
-        durationBlock(m);
+        singleMaterialBlock(m, 'Matériau découpé') + durationBlock(m);
     }
     if (m.type === 'usinage'){
       h += durationBlock(m) + singleMaterialBlock(m, 'Matériau usiné');
@@ -476,6 +476,7 @@ function validate(m){
   if (m.type === 'laser'){
     if (!draft.laser) e.push('Indique le laser utilisé.');
     if (!draft.lens) e.push('Indique la lentille utilisée.');
+    if (!draft.material.trim()) e.push('Indique le matériau découpé.');
   }
   if (m.type === 'usinage' && !draft.material.trim()) e.push('Indique le matériau usiné.');
   return e;
@@ -498,7 +499,7 @@ function save(){
     duration: (Number(draft.h)||0)*60 + (Number(draft.min)||0),
     durationKind: (t === 'laser' || t === 'usinage') ? draft.durationKind : 'planned',
     nozzles: t === 'fdm' ? draft.nozzles.slice() : [],
-    materials: t === 'fdm' ? draft.materials.slice() : (t === 'sla' || t === 'sls' || t === 'usinage') && draft.material.trim() ? [draft.material.trim()] : [],
+    materials: t === 'fdm' ? draft.materials.slice() : (t === 'sla' || t === 'sls' || t === 'usinage' || t === 'laser') && draft.material.trim() ? [draft.material.trim()] : [],
     volume: (t === 'sla' || t === 'sls') ? Number(String(draft.volume).replace(',', '.')) : '',
     laser: t === 'laser' ? draft.laser : '', lens: t === 'laser' ? draft.lens : '',
     note: draft.note.trim(), _dirty: true, _rev: ((old && old._rev) || 0) + 1
