@@ -9,7 +9,7 @@ window.FABLAB_CONFIG = {
 
   // Facultatif : adresse du stock.json de l'appli de stock, pour proposer les matériaux réellement en stock.
   // Exemple : 'https://TON-COMPTE.github.io/fablab-stock/stock.json'
-  stockUrl: 'https://fablabclunisois.github.io/StockFabLab/',
+  stockUrl: 'https://fablabclunisois.github.io/StockFabLab/stock.json',
 
   // Valeurs proposées pour la découpe laser (modifiables aussi machine par machine, voir plus bas).
   lasers: ['CO2', 'YAG'],
