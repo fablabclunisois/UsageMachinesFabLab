@@ -255,7 +255,7 @@ async function loadStockMaterials(){
 }
 
 /* ---------- synchronisation vers Google Sheets ---------- */
-let syncing = false, syncState = '', keyError = false;
+let syncing = false, syncState = '', keyError = false, syncError = '';
 function toServer(e){
   return {id:e.id, created:e.created, launch:e.launch, machine:e.machine, type:e.type, user:e.user, status:e.status,
     duration:e.duration, durationKind:e.durationKind, nozzles:e.nozzles, usage:e.usage||[], weight:e.weight===undefined?'':e.weight, materials:e.materials, volume:e.volume,
@@ -265,6 +265,7 @@ function setBadge(){
   const b = $('#sync'), dirty = entries.filter(e => e._dirty).length;
   let txt;
   if (!CFG.scriptUrl) txt = '⚠ non configuré';
+  else if (syncError && dirty) txt = '⚠ envoi échoué';
   else if (keyError) txt = '⚠ code d’accès';
   else if (syncing) txt = '⟳ envoi…';
   else if (dirty) txt = '⟳ ' + dirty + ' à envoyer';
@@ -272,8 +273,18 @@ function setBadge(){
   b.textContent = txt;
   const c = $('#cnt'); c.hidden = !entries.length; c.textContent = entries.length;
 }
+function describeError(err){
+  if (!navigator.onLine) return 'Pas de connexion Internet : l’envoi sera retenté automatiquement.';
+  if (err && err.name === 'AbortError') return 'Le script Google n’a pas répondu en 25 s : réessaie dans un moment.';
+  if (err instanceof SyntaxError) return 'Réponse inattendue de Google : le déploiement du script doit être réglé sur « Qui a accès : Tout le monde », puis redéployé en nouvelle version.';
+  return 'Script Google injoignable : vérifie que scriptUrl (config.js) est bien l’URL de l’application Web, qu’elle finit par /exec, et que le déploiement est ouvert à « Tout le monde ».';
+}
 async function sync(manual){
   if (!CFG.scriptUrl){ if (manual) toast('scriptUrl est vide dans config.js'); setBadge(); return; }
+  if (!/\/exec$/.test(CFG.scriptUrl)){
+    syncError = 'scriptUrl doit se terminer par /exec : copie l’« URL de l’application Web » donnée au déploiement (pas l’adresse de l’éditeur).';
+    if (manual) toast(syncError); setBadge(); if (tab === 'list') renderList(); return;
+  }
   if (syncing) return;
   const todo = entries.filter(e => e._dirty);
   if (!todo.length){ setBadge(); if (manual) toast('Tout est déjà envoyé'); return; }
@@ -291,16 +302,17 @@ async function sync(manual){
       const j = await res.json();
       if (!j.ok){
         if (j.error === 'cle'){ keyError = true; if (manual) toast('Code d’accès invalide : rescanne le QR code du FabLab'); }
-        else if (manual) toast('Le serveur a refusé l’envoi (' + j.error + ')');
+        else { syncError = 'Le script Google a refusé l’envoi : ' + j.error; if (manual) toast(syncError); }
         break;
       }
-      keyError = false;
+      keyError = false; syncError = '';
       (j.saved||[]).forEach(id => { const e = entries.find(x => x.id === id); if (e && e._rev === revs[id]){ e._dirty = false; e._syncedAt = new Date().toISOString(); } });
       saveEntries();
     }
     if (manual && !keyError && !entries.some(e => e._dirty)) toast('Envoyé ✓');
   }catch(err){
-    if (manual) toast('Pas de connexion : l’envoi sera retenté automatiquement');
+    syncError = describeError(err);
+    if (manual) toast(syncError);
   }finally{
     syncing = false; setBadge(); if (tab === 'list') renderList();
   }
@@ -408,6 +420,7 @@ function renderForm(){
   const editing = !!draft.id;
   let h = '';
   if (!CFG.scriptUrl) h += '<div class="banner">⚠ <b>scriptUrl</b> est vide dans <code>config.js</code> : les saisies restent sur ce téléphone et ne sont pas envoyées.</div>';
+  if (syncError) h += '<div class="banner">⚠ ' + esc(syncError) + '</div>';
   if (keyError) h += '<div class="banner">⚠ Code d’accès manquant ou invalide : rescanne le QR code affiché au FabLab pour pouvoir envoyer tes saisies.</div>';
   h += '<section class="card"><h2>' + (editing ? 'Modifier la saisie' : draft.copy ? 'Nouvelle saisie (copie)' : 'Nouvelle saisie') + '</h2>';
 
@@ -423,7 +436,7 @@ function renderForm(){
   }
 
   if (m && !draft.picking){
-    h += '<label for="f-user">Utilisateur, projet ou «&nbsp;/&nbsp;»</label>' +
+    h += '<label for="f-user">Étudiant, projet ou «&nbsp;/&nbsp;»</label>' +
       '<div class="inline"><input id="f-user" data-f="user" autocomplete="off" maxlength="120" value="' + esc(draft.user) + '" placeholder="Nom, projet…">' +
       '<button type="button" class="btn" data-act="slash" aria-label="Aucun nom ni projet">/</button></div>';
     h += '<label for="f-launch">Heure de lancement</label>' +
@@ -528,6 +541,7 @@ function renderList(){
   bar.hidden = true;
   let h = '';
   if (!CFG.scriptUrl) h += '<div class="banner">⚠ <b>scriptUrl</b> est vide dans <code>config.js</code> : rien n’est envoyé au tableur.</div>';
+  if (syncError) h += '<div class="banner">⚠ ' + esc(syncError) + '</div>';
   if (keyError) h += '<div class="banner">⚠ Code d’accès manquant ou invalide : rescanne le QR code du FabLab pour envoyer tes saisies.</div>';
   const list = entries.slice().sort((a,b) => new Date(b.launch) - new Date(a.launch));
   if (!list.length){
