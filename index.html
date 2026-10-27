@@ -150,6 +150,20 @@ footer a{color:inherit}
   body{background:#fff;padding:0} main{max-width:none;padding:0}
   .qrgrid{grid-template-columns:repeat(2,1fr)} .qrcard{border:1px solid #999}
 }
+.hbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:8px 0 6px}
+.hbar i{display:block;height:100%;background:var(--accent)}
+.savebar[hidden]{display:none}
+.tab{white-space:nowrap;font-size:.92rem}
+.tab .n{margin-left:4px;padding:0 6px}
+.kpis b{white-space:nowrap;font-size:1.1rem}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-bottom:12px}
+.chips.scroll .chip{flex:none;white-space:nowrap}
+.trend{display:flex;align-items:flex-end;gap:5px;height:96px;margin-top:12px}
+.trend div{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;font-size:.66rem;color:var(--muted)}
+.trend i{display:block;width:100%;background:color-mix(in srgb,var(--accent) 40%,transparent);border-radius:4px 4px 0 0;min-height:2px}
+.trend .cur i{background:var(--accent)}
+.kpis{display:flex;gap:10px;margin:2px 0 4px}.kpis div{flex:1;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:8px 10px}
+.kpis b{display:block;font-size:1.25rem;line-height:1.2}.kpis span{font-size:.78rem;color:var(--muted)}
 #usage{display:grid;gap:10px;margin-top:4px}
 .urow{border:1.5px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
 .urow .un{font-weight:700;font-size:.9rem;margin-bottom:8px;color:var(--accent)}
@@ -172,6 +186,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" id="tab-new" data-tab="new" aria-selected="true">Saisir</button>
     <button class="tab" role="tab" id="tab-list" data-tab="list" aria-selected="false">Mes saisies <span class="n" id="cnt" hidden>0</span></button>
+    <button class="tab" role="tab" id="tab-hist" data-tab="hist" aria-selected="false">Historique</button>
   </div>
 </header>
 <main id="view"></main>
@@ -191,7 +206,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 (function(){
 'use strict';
 const CFG = window.FABLAB_CONFIG || {machines:[]};
-const LS = {theme:'fabmach.theme', entries:'fabmach.entries', key:'fabmach.key', user:'fabmach.lastUser', stock:'fabmach.stockMat'};
+const LS = {stats:'fabmach.stats', theme:'fabmach.theme', entries:'fabmach.entries', key:'fabmach.key', user:'fabmach.lastUser', stock:'fabmach.stockMat'};
 const TYPES = {
   fdm:{label:'Imprimantes 3D FDM', short:'FDM'}, sla:{label:'Imprimantes 3D SLA', short:'SLA'}, sls:{label:'Imprimantes 3D SLS', short:'SLS'},
   laser:{label:'Découpe laser', short:'Laser'}, usinage:{label:'Machines d’usinage', short:'Usinage'}
@@ -546,6 +561,84 @@ function save(){
   toast('Enregistré ✓'); show('list'); sync();
 }
 
+/* ---------- historique d'utilisation (statistiques anonymes par machine et par mois) ---------- */
+let stats = lsGet(LS.stats, null), statsMonth = '', statsState = '', statsAt = 0;
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+const monthName = k => MOIS[Number(k.slice(5)) - 1] + ' ' + k.slice(0, 4);
+const monthShort = k => MOIS[Number(k.slice(5)) - 1].slice(0, 3);
+const fmtN = n => String(Math.round(n * 10) / 10).replace('.', ',');
+async function loadStats(){
+  if (!CFG.scriptUrl || !/\/exec$/.test(CFG.scriptUrl)) return;
+  statsState = 'load'; if (tab === 'hist') renderHist();
+  try{
+    const r = await fetch(CFG.scriptUrl + '?action=stats&k=' + encodeURIComponent(getKey()), {cache:'no-store'});
+    const j = JSON.parse(await r.text());
+    if (j.ok){ stats = {at:Date.now(), months:j.months || {}}; lsSet(LS.stats, stats); statsState = ''; }
+    else statsState = j.error === 'cle' ? 'cle' : 'err';
+  }catch(e){ statsState = 'err'; }
+  if (tab === 'hist') renderHist();
+}
+function mergeMonths(list){
+  const acc = {};
+  list.forEach(rows => rows.forEach(x => {
+    const a = acc[x.machine] = acc[x.machine] || {machine:x.machine, n:0, min:0, fail:0, g:0, ml:0};
+    a.n += x.n; a.min += x.min; a.fail += x.fail; a.g += x.g; a.ml += x.ml;
+  }));
+  return Object.keys(acc).map(k => acc[k]);
+}
+function renderHist(){
+  bar.hidden = true;
+  let h = '';
+  if (!CFG.scriptUrl) h += '<div class="banner">⚠ <b>scriptUrl</b> est vide dans <code>config.js</code>.</div>';
+  if (statsState === 'cle') h += '<div class="banner">⚠ Code d’accès manquant ou invalide : rescanne le QR code du FabLab.</div>';
+  else if (statsState === 'err') h += '<div class="banner">⚠ Impossible de charger l’historique' + (stats ? ' : dernière version enregistrée sur ce téléphone affichée.' : '.') + ' Si le script vient d’être modifié, il faut le réautoriser et le redéployer (voir README).</div>';
+  const months = stats ? Object.keys(stats.months).sort().reverse() : [];
+  if (!months.length){
+    view.innerHTML = h + '<div class="empty">' + (statsState === 'load' ? 'Chargement…' : 'Aucun historique pour le moment.') + '</div>';
+    return;
+  }
+  if (statsMonth !== 'all' && !months.includes(statsMonth)) statsMonth = months[0];
+  const rows = statsMonth === 'all' ? mergeMonths(months.map(k => stats.months[k])) : stats.months[statsMonth];
+  const tot = rows.reduce((a, x) => ({n:a.n + x.n, min:a.min + x.min, fail:a.fail + x.fail}), {n:0, min:0, fail:0});
+  const names = (CFG.machines || []).map(m => m.name);
+  const idx = nm => { const i = names.indexOf(nm); return i < 0 ? 999 : i; };
+  const sorted = rows.slice().sort((a, b) => idx(a.machine) - idx(b.machine) || a.machine.localeCompare(b.machine));
+  const maxMin = Math.max(1, ...sorted.map(x => x.min));
+
+  h += '<div class="chips scroll" role="group" aria-label="Période">' +
+    months.slice(0, 12).map(k => '<button type="button" class="chip" data-act="hmonth" data-v="' + k + '" aria-pressed="' + (statsMonth === k) + '">' + esc(cap(monthName(k))) + '</button>').join('') +
+    (months.length > 1 ? '<button type="button" class="chip" data-act="hmonth" data-v="all" aria-pressed="' + (statsMonth === 'all') + '">Tout</button>' : '') + '</div>';
+
+  h += '<section class="card"><h2>' + (statsMonth === 'all' ? 'Tous les mois' : esc(cap(monthName(statsMonth)))) + '</h2>' +
+    '<div class="kpis"><div><b>' + tot.n + '</b><span>utilisation' + (tot.n > 1 ? 's' : '') + '</span></div>' +
+    '<div><b>' + esc(fmtDur(tot.min)) + '</b><span>durée cumulée</span></div>' +
+    '<div><b>' + tot.fail + '</b><span>échec' + (tot.fail > 1 ? 's' : '') + '</span></div></div>';
+  if (months.length > 1){
+    const chrono = months.slice(0, 12).slice().reverse();
+    const totals = chrono.map(k => stats.months[k].reduce((a, x) => a + x.min, 0)), top = Math.max(1, ...totals);
+    h += '<div class="trend" aria-label="Durée cumulée par mois">' + chrono.map((k, i) =>
+      '<div class="' + (k === statsMonth ? 'cur' : '') + '" title="' + esc(cap(monthName(k))) + ' : ' + esc(fmtDur(totals[i])) + '"><i style="height:' + Math.max(2, Math.round(totals[i] / top * 70)) + 'px"></i>' + esc(monthShort(k)) + '</div>').join('') + '</div>';
+  }
+  h += '</section>';
+
+  sorted.forEach(x => {
+    const m = (CFG.machines || []).find(c => c.name === x.machine);
+    const dl = [['Utilisations', String(x.n)], ['Durée cumulée', fmtDur(x.min)]];
+    if (x.fail) dl.push(['Échecs', String(x.fail)]);
+    if (x.g > 0) dl.push(['Matière utilisée', fmtN(x.g) + ' g']);
+    if (x.ml > 0) dl.push(['Volume', fmtN(x.ml) + ' mL']);
+    h += '<article class="card entry" data-t="' + (m ? m.type : '') + '"><div class="name">' + esc(x.machine) + '</div>' +
+      '<div class="hbar"><i style="width:' + Math.max(2, Math.round(x.min / maxMin * 100)) + '%"></i></div>' +
+      '<dl>' + dl.map(r => '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>').join('') + '</dl></article>';
+  });
+  const idle = names.filter(n => !rows.some(x => x.machine === n));
+  if (idle.length) h += '<p class="hint" style="margin:0 2px 14px">Sans utilisation sur cette période : ' + esc(idle.join(', ')) + '.</p>';
+  h += '<p class="hint" style="margin:0 2px 14px">Statistiques anonymes (aucun nom affiché), hors saisies annulées. Durées telles que saisies : prévues pour les imprimantes, effectives pour l’usinage.' +
+    (stats && stats.at ? ' Mis à jour à ' + hhmm(new Date(stats.at)) + '.' : '') + ' <button type="button" class="btn small" data-act="hrefresh" style="margin-left:6px">Actualiser</button></p>';
+  view.innerHTML = h;
+}
+
 /* ---------- liste « Mes saisies » ---------- */
 function renderList(){
   bar.hidden = true;
@@ -604,6 +697,8 @@ function onClick(ev){
   else if (a === 'laser' || a === 'lens'){ draft[a] = v; document.querySelectorAll('[data-act=' + a + ']').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v)); }
   else if (a === 'sugmat'){ draft.material = v; $('#f-mat').value = v; }
   else if (a === 'save') save();
+  else if (a === 'hmonth'){ statsMonth = v; renderHist(); }
+  else if (a === 'hrefresh'){ statsAt = Date.now(); loadStats(); }
   else if (a === 'cancel'){ draft = null; show('list'); }
   else if (a === 'edit' || a === 'copy'){
     const e = entries.find(x => x.id === b.dataset.id); if (!e) return;
@@ -626,7 +721,7 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 function show(which){
   tab = which;
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === which));
-  if (which === 'new'){ if (!draft) draft = blankDraft(); renderForm(); if (draft.picking) loadStatus(); } else renderList();
+  if (which === 'new'){ if (!draft) draft = blankDraft(); renderForm(); if (draft.picking) loadStatus(); } else if (which === 'hist'){ renderHist(); if (Date.now() - statsAt > 60000){ statsAt = Date.now(); loadStats(); } } else renderList();
   window.scrollTo({top:0});
 }
 
