@@ -273,11 +273,18 @@ function setBadge(){
   b.textContent = txt;
   const c = $('#cnt'); c.hidden = !entries.length; c.textContent = entries.length;
 }
-function describeError(err){
+async function describeError(err){
   if (!navigator.onLine) return 'Pas de connexion Internet : l’envoi sera retenté automatiquement.';
   if (err && err.name === 'AbortError') return 'Le script Google n’a pas répondu en 25 s : réessaie dans un moment.';
-  if (err instanceof SyntaxError) return 'Réponse inattendue de Google : le déploiement du script doit être réglé sur « Qui a accès : Tout le monde », puis redéployé en nouvelle version.';
-  return 'Script Google injoignable : vérifie que scriptUrl (config.js) est bien l’URL de l’application Web, qu’elle finit par /exec, et que le déploiement est ouvert à « Tout le monde ».';
+  if (err && err.snippet !== undefined){
+    return 'Google a répondu autre chose que le script attendu (HTTP ' + err.status + ') : « ' + (err.snippet || 'page vide') + ' ». ' +
+      'Causes fréquentes : erreur dans le Code.gs collé (voir Apps Script > Exécutions), ou script modifié mais pas redéployé en « Nouvelle version ».';
+  }
+  let reach = true;
+  try{ await fetch(CFG.scriptUrl, {mode:'no-cors', cache:'no-store'}); }catch(e){ reach = false; }
+  return reach
+    ? 'Google répond mais le navigateur refuse de lire la réponse : le déploiement n’est pas ouvert à « Tout le monde » (ou ton compte Google d’établissement le bloque), ou scriptUrl ne correspond pas au déploiement actif.'
+    : 'Ce téléphone n’arrive pas à joindre Google (script.google.com) : Wi-Fi filtré, VPN ou bloqueur de publicités, ou scriptUrl mal copiée.';
 }
 async function sync(manual){
   if (!CFG.scriptUrl){ if (manual) toast('scriptUrl est vide dans config.js'); setBadge(); return; }
@@ -299,7 +306,10 @@ async function sync(manual){
         res = await fetch(CFG.scriptUrl, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
           body: JSON.stringify({k:getKey(), records:chunk.map(toServer)}), signal: ctl.signal});
       } finally { clearTimeout(to); }
-      const j = await res.json();
+      const raw = await res.text();
+      let j;
+      try{ j = JSON.parse(raw); }
+      catch(pe){ const se = new Error('réponse non JSON'); se.status = res.status; se.snippet = raw.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); throw se; }
       if (!j.ok){
         if (j.error === 'cle'){ keyError = true; if (manual) toast('Code d’accès invalide : rescanne le QR code du FabLab'); }
         else { syncError = 'Le script Google a refusé l’envoi : ' + j.error; if (manual) toast(syncError); }
@@ -311,7 +321,7 @@ async function sync(manual){
     }
     if (manual && !keyError && !entries.some(e => e._dirty)) toast('Envoyé ✓');
   }catch(err){
-    syncError = describeError(err);
+    syncError = await describeError(err);
     if (manual) toast(syncError);
   }finally{
     syncing = false; setBadge(); if (tab === 'list') renderList();
