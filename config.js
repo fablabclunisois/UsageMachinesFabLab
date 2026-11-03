@@ -45,5 +45,31 @@ window.FABLAB_CONFIG = {
    { id: 'PtChar', name: 'Charly Robot (Gd)', type: 'usinage' },
    { id: 'GdChar', name: 'Charly Robot (Pt)', type: 'usinage' },
    { id: 'Tour', name: 'Tour Numérisé', type: 'usinage' }
-  ]
+  ],
+
+  /* Rappels d'entretien (onglet « Entretien »), d'après les préconisations des constructeurs (plans dans maintenance.js).
+     asOf  : date jusqu'à laquelle les compteurs ci-dessous sont à jour (ici : tes fichiers Excel 2025-2026).
+     hours : heures d'utilisation cumulées à cette date. L'appli y ajoute les durées saisies dans le Sheet après asOf.
+     since : date de première utilisation (point de départ des échéances en mois tant qu'aucun entretien n'est enregistré).
+     plan  : plan d'entretien (voir maintenance.js) ; sans plan, la machine est listée sans échéance.
+     Pour ajouter / modifier un plan : maintenance.plans = { monplan: {name, tasks:[{id,label,hours,months}], info:[]} } */
+  maintenance: {
+    asOf: '2026-11-02',
+    machines: {
+      UM3:    { plan: 'ultimaker3', hours: 654.1,  since: '2025-01-30' },
+      UMS5:   { plan: 'ultimakerS', hours: 1651.2, since: '2025-01-30' },
+      Up1:    { plan: 'upboxplus',  hours: 453.9,  since: '2025-02-20' },
+      Up2:    { plan: 'upboxplus',  hours: 581.1,  since: '2025-02-05' },
+      Up3:    { plan: 'upboxplus',  hours: 618.3,  since: '2025-02-11' },
+      P1S:    { plan: 'bambup1',    hours: 767.0,  since: '2025-05-30' },
+      EM:     { hours: 0 },
+      UPSE:   { plan: 'uprintse',   hours: 363.4,  since: '2025-03-06' },
+      Form4:  { plan: 'form4',      hours: 0 },
+      Lisa:   { plan: 'lisax',      hours: 29.0,   since: '2026-03-19' },
+      Trotec: { plan: 'trotec',     hours: 452.1,  since: '2025-01-30' },
+      PtChar: { hours: 0 },
+      GdChar: { hours: 0 },
+      Tour:   { hours: 0 }
+    }
+  }
 };
