@@ -156,6 +156,7 @@ footer a{color:inherit}
 .tab{white-space:nowrap;font-size:.92rem}
 .tab .n{margin-left:4px;padding:0 6px}
 .kpis b{white-space:nowrap;font-size:1.1rem}
+.mwrap{display:flex;flex-direction:column;gap:6px}.mwrap .mbtn{flex:1}.mwrap .ffin{width:100%}
 .chips.scroll{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-bottom:12px}
 .chips.scroll .chip{flex:none;white-space:nowrap}
 .trend{display:flex;align-items:flex-end;gap:5px;height:96px;margin-top:12px}
@@ -356,7 +357,7 @@ async function loadStatus(){
   try{
     const r = await fetch(CFG.scriptUrl + '?action=status&k=' + encodeURIComponent(getKey()), {cache:'no-store'});
     const j = await r.json();
-    if (j.ok){ busy = j.busy || []; busyAt = Date.now(); if (tab === 'new' && draft && (draft.picking || !draft.machineId)) renderForm(); }
+    if (j.ok){ busy = j.busy || []; busyAt = Date.now(); if (tab === 'new' && draft && (draft.picking || !draft.machineId)) renderForm(); else updateMachineBanner(); }
   }catch(e){ /* hors ligne : on garde le dernier état connu */ }
 }
 function machineState(m){
@@ -370,6 +371,45 @@ function machineState(m){
   return end > new Date() ? {k:'busy', txt:'En cours · fin prévue ' + day + hhmm(end)} : {k:'over', txt:'Fin prévue dépassée (' + day + hhmm(end) + ') · à confirmer'};
 }
 const stateHtml = m => { const s = machineState(m); return s ? '<span class="st st-' + s.k + '">' + esc(s.txt) + '</span>' : ''; };
+
+/* ---------- « Marquer terminée » : clôture d'une machine pour tous les utilisateurs ---------- */
+const canFinish = st => CFG.forceFinish !== false && !!st && (st.k === 'busy' || st.k === 'over');
+function tileHtml(x, t){
+  const st = machineState(x);
+  return '<div class="mwrap"><button type="button" class="mbtn" data-t="' + t + '" data-act="machine" data-v="' + esc(x.id) + '">' + esc(x.name) +
+    (st ? '<span class="st st-' + st.k + '">' + esc(st.txt) + '</span>' : '') + '</button>' +
+    (canFinish(st) ? '<button type="button" class="btn small ffin" data-act="ffinish" data-v="' + esc(x.id) + '">✓ Marquer terminée</button>' : '') + '</div>';
+}
+function updateMachineBanner(){
+  const el = $('#mstate'); if (!el) return;
+  const m = draft && !draft.id ? machineById(draft.machineId) : null, st = m && machineState(m);
+  el.innerHTML = canFinish(st)
+    ? '<div class="banner" style="margin:10px 0 0">⚠ ' + esc(m.name) + ' est indiquée « ' + esc(st.txt.charAt(0).toLowerCase() + st.txt.slice(1)) + ' ». Si elle est en fait libre :' +
+      '<div style="margin-top:8px"><button type="button" class="btn small" data-act="ffinish" data-v="' + esc(m.id) + '">✓ Marquer terminée pour tous</button></div></div>'
+    : '';
+}
+async function finishMachine(id){
+  const m = machineById(id); if (!m) return;
+  if (!CFG.scriptUrl){ toast('scriptUrl est vide dans config.js'); return; }
+  if (!confirm('Marquer « ' + m.name + ' » comme terminée pour tous les utilisateurs ?\n\nToutes ses utilisations encore « Lancé » passeront à « Terminé ».')) return;
+  try{
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 25000);
+    let res;
+    try{ res = await fetch(CFG.scriptUrl, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({k:getKey(), action:'finish', machine:m.name}), signal:ctl.signal}); }
+    finally{ clearTimeout(to); }
+    const raw = await res.text(); let j;
+    try{ j = JSON.parse(raw); }
+    catch(pe){ throw Object.assign(new Error('réponse non JSON'), {status:res.status, snippet:raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)}); }
+    if (!j.ok){ toast(j.error === 'cle' ? 'Code d’accès invalide : rescanne le QR code du FabLab' : 'Le script a refusé : ' + j.error); return; }
+    const now = new Date().toISOString();
+    entries.forEach(e => { if (e.machineId === id && e.status === 'Lancé'){ e.status = 'Terminé'; e.updated = now; e._dirty = true; e._rev = (e._rev || 0) + 1; } });
+    saveEntries(); busy = busy.filter(b => b.machine !== m.name); busyAt = Date.now();
+    toast(m.name + ' : terminée pour tous ✓');
+    if (tab === 'new' && draft){ if (draft.picking || !draft.machineId) renderForm(); else updateMachineBanner(); }
+    else if (tab === 'list') renderList();
+    setBadge(); sync(); loadStatus();
+  }catch(err){ toast(await describeError(err)); }
+}
 
 /* ---------- formulaire ---------- */
 let tab = 'new', draft = null;
@@ -454,10 +494,10 @@ function renderForm(){
   if (!m || draft.picking){
     Object.keys(TYPES).forEach(t => {
       const ms = (CFG.machines||[]).filter(x => x.type === t); if (!ms.length) return;
-      h += '<h3>' + TYPES[t].label + '</h3><div class="grid">' + ms.map(x => '<button type="button" class="mbtn" data-t="' + t + '" data-act="machine" data-v="' + esc(x.id) + '">' + esc(x.name) + stateHtml(x) + '</button>').join('') + '</div>';
+      h += '<h3>' + TYPES[t].label + '</h3><div class="grid">' + ms.map(x => tileHtml(x, t)).join('') + '</div>';
     });
   } else {
-    h += '<div class="mline"><span><b>' + esc(m.name) + '</b> <span class="hint">· ' + TYPES[m.type].short + '</span></span><button type="button" class="btn small" data-act="pick">Changer</button></div>';
+    h += '<div class="mline"><span><b>' + esc(m.name) + '</b> <span class="hint">· ' + TYPES[m.type].short + '</span></span><button type="button" class="btn small" data-act="pick">Changer</button></div><div id="mstate"></div>';
   }
 
   if (m && !draft.picking){
@@ -501,6 +541,7 @@ function renderForm(){
   }
   h += '</section>';
   view.innerHTML = h;
+  updateMachineBanner();
 
   bar.hidden = !(m && !draft.picking);
   bar.innerHTML = '<button type="button" class="btn primary" data-act="save">Enregistrer</button>' +
@@ -699,6 +740,7 @@ function onClick(ev){
   else if (a === 'save') save();
   else if (a === 'hmonth'){ statsMonth = v; renderHist(); }
   else if (a === 'hrefresh'){ statsAt = Date.now(); loadStats(); }
+  else if (a === 'ffinish'){ finishMachine(v); }
   else if (a === 'cancel'){ draft = null; show('list'); }
   else if (a === 'edit' || a === 'copy'){
     const e = entries.find(x => x.id === b.dataset.id); if (!e) return;
