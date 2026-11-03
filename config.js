@@ -67,9 +67,9 @@ window.FABLAB_CONFIG = {
       Form4:  { plan: 'form4',      hours: 0 },
       Lisa:   { plan: 'lisax',      hours: 29.0,   since: '2026-03-19' },
       Trotec: { plan: 'trotec',     hours: 452.1,  since: '2025-01-30' },
-      PtChar: { hours: 0 },
+      PtChar: { plan: 'charly2u',  hours: 0 },
       GdChar: { hours: 0 },
-      Tour:   { hours: 0 }
+      Tour:   { plan: 'tourotmt',  hours: 0 }
     }
   }
 };

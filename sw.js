@@ -1,6 +1,6 @@
 /* Service worker : l'appli reste utilisable hors ligne (la page est rechargée depuis le réseau
    quand il y en a un, sinon depuis le cache). Les envois vers Google ne passent jamais par ici. */
-const CACHE = 'fabmach-v2.0'; // même numéro que APP_VERSION dans index.html
+const CACHE = 'fabmach-v2.2'; // même numéro que APP_VERSION dans index.html
 const SHELL = ['./', 'index.html', 'config.js', 'maintenance.js', 'qr.js', 'manifest.json', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

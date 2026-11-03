@@ -104,8 +104,39 @@ window.FABLAB_PLANS = {
 
   form4: {
     name: 'Formlabs Form 4',
-    source: 'Formlabs : pas de calendrier à échéance fixe ; consommables suivis par la machine.',
+    source: 'Formlabs, « Schedule of maintenance (Form 4 generation) » et « Resin tank lifetime » : tâches à faire entre les impressions ou au besoin, sans fréquence en jours ou en heures.',
     tasks: [],
-    info: ['Réservoir de résine (tank) : durée de vie d’environ 75 000 couches, suivie par la machine.']
+    info: [
+      'Entre les impressions : inspecter et nettoyer le plateau (IPA, grattoir) ; inspecter la cartouche de résine (fuites, date de péremption ≈ 24 mois) ; vérifier la cuve (résine durcie, débris).',
+      'À chaque changement de résine : nettoyer complètement le mélangeur (mixer) et le laisser sécher.',
+      'Cuve de résine : durée de vie estimée 75 000+ couches (écran Imprimante > Tank). Remplacer si film percé, coupé, plié ou usé, ou après échecs inexpliqués ; remplacer aussi le mélangeur.',
+      'Au besoin : dépoussiérer la surface de décollement (LPU) au chiffon photo ; si bruit ou frottement de l’axe Z, nettoyer et regraisser la vis-mère (graisse au lithium) ; mettre à jour PreForm et le firmware.'
+    ]
+  },
+
+  tourotmt: {
+    name: 'Tour OTMT OT222450',
+    source: 'Manuel OTMT OT222450 : aucun calendrier d’entretien. Il signale 13 godets à huile (lubrification), de ne pas démonter le moteur sans balai (contacter le distributeur) et de graisser légèrement les surfaces usinées.',
+    tasks: [],
+    info: [
+      'Pas d’intervalle chiffré dans le manuel : lubrifier régulièrement les godets à huile et graisser légèrement les surfaces usinées (glissières, vis-mère).',
+      'Ne pas démonter le moteur sans balai : contacter le distributeur pour tout entretien ou réparation du moteur.',
+      'Garantie : 1 an, réduite de moitié si la machine travaille jour et nuit.'
+    ]
+  }
+
+  ,charly2u: {
+    name: 'Charlyrobot Charly 2U',
+    source: 'Mode d’emploi Charly 2U, § 8.6 « Fréquence de maintenance » (axes) et § 7.2 (révision de la broche HF : 2000 h).',
+    tasks: [
+      {id:'axclean', label:'Nettoyer les axes', months:1},
+      {id:'axgrease', label:'Graisser les axes (pompe à graisse, 2 points par axe ; graisse Charlyrobot réf. 22019 ou BP PREP-00)', months:6},
+      {id:'spindle', label:'Révision complète de la broche HF', hours:2000}
+    ],
+    info: [
+      'Tous les jours : contrôler les organes de sécurité, nettoyer la machine (aspirateur, white-spirit sur les parties peintes, eau claire sur les vitres), purger les condensats pneumatiques.',
+      'Chaque semaine (table à dépression) : nettoyer le filtre et contrôler le niveau d’huile de la pompe à vide.',
+      'Vérifier régulièrement l’état des pinces ER20.'
+    ]
   }
 };
