@@ -42,8 +42,8 @@ window.FABLAB_CONFIG = {
    { id: 'Form4', name: 'Form 4', type: 'sla' },
    { id: 'Lisa', name: 'Sinterit Lisa X', type: 'sls' },
    { id: 'Trotec', name: 'Trotec Speedy 400 flexx', type: 'laser' },
-   { id: 'PtChar', name: 'Charly Robot (Gd)', type: 'usinage' },
-   { id: 'GdChar', name: 'Charly Robot (Pt)', type: 'usinage' },
+   { id: 'PtChar', name: 'Charly Robot (Pt)', type: 'usinage' },
+   { id: 'GdChar', name: 'Charly Robot (Gd)', type: 'usinage' },
    { id: 'Tour', name: 'Tour Numérisé', type: 'usinage' }
   ],
 
