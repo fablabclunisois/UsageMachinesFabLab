@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#80276c">
 <script src="config.js"></script>
+<script src="maintenance.js"></script>
 <script>
 (function(){
   var C = window.FABLAB_CONFIG || {}, root = document.documentElement;
@@ -133,6 +134,26 @@ dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:10px 0 12px;f
 dt{color:var(--muted)} dd{margin:0}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
 .pending{color:var(--warn);font-size:.8rem;font-weight:600;margin-top:8px}
+.muted{color:var(--muted)}
+.tab .n.bad{background:var(--bad);color:#fff}
+.mach{padding:0;overflow:hidden}
+.mach>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 16px;min-height:56px}
+.mach>summary::-webkit-details-marker{display:none}
+.mach>summary b{flex:1;min-width:0}
+.mach>summary small{display:block;color:var(--muted);font-weight:400;font-size:.8rem}
+.mst{flex:none;font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:999px;border:1.5px solid currentColor}
+.mst-ok{color:var(--ok)} .mst-soon{color:var(--warn)} .mst-over{color:var(--bad)} .mst-none{color:var(--muted)}
+.mbody{border-top:1px solid var(--line);padding:6px 16px 14px}
+.mt{padding:10px 0;border-bottom:1px solid var(--line)} .mt:last-of-type{border-bottom:0}
+.mt .row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.mt .row>span{min-width:0;overflow-wrap:anywhere}
+.mt small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
+.mt .tag{flex:none;font-size:.75rem;font-weight:700}
+.mt-ok .tag{color:var(--ok)} .mt-soon .tag{color:var(--warn)} .mt-over .tag{color:var(--bad)}
+.pbar{height:6px;border-radius:3px;background:var(--line);margin:7px 0 4px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--ok)} .mt-soon .pbar i{background:var(--warn)} .mt-over .pbar i{background:var(--bad)}
+.mt .btn{margin-top:6px}
+.minfo{margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:.84rem}
 .empty{text-align:center;color:var(--muted);padding:34px 10px}
 .banner{background:color-mix(in srgb,var(--warn) 14%,var(--card));border:1.5px solid var(--warn);color:var(--ink);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.92rem}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:20;font-weight:600;max-width:90vw;text-align:center}
@@ -188,10 +209,11 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
     <button class="tab" role="tab" id="tab-new" data-tab="new" aria-selected="true">Saisir</button>
     <button class="tab" role="tab" id="tab-list" data-tab="list" aria-selected="false">Mes saisies <span class="n" id="cnt" hidden>0</span></button>
     <button class="tab" role="tab" id="tab-hist" data-tab="hist" aria-selected="false">Historique</button>
+    <button class="tab" role="tab" id="tab-maint" data-tab="maint" aria-selected="false" hidden>Entretien <span class="n bad" id="mcnt" hidden>0</span></button>
   </div>
 </header>
 <main id="view"></main>
-<footer id="foot">v4.0</footer>
+<footer id="foot">v2.0</footer>
 <div class="savebar" id="bar" hidden></div>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="themeDlg">
@@ -206,8 +228,9 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 <script>
 (function(){
 'use strict';
+const APP_VERSION = '2.0'; // à changer ici, dans le pied de page (#foot) et dans sw.js à chaque modification
 const CFG = window.FABLAB_CONFIG || {machines:[]};
-const LS = {stats:'fabmach.stats', theme:'fabmach.theme', entries:'fabmach.entries', key:'fabmach.key', user:'fabmach.lastUser', stock:'fabmach.stockMat'};
+const LS = {stats:'fabmach.stats', theme:'fabmach.theme', entries:'fabmach.entries', key:'fabmach.key', user:'fabmach.lastUser', stock:'fabmach.stockMat', maint:'fabmach.maint', mcode:'fabmach.mcode'};
 const TYPES = {
   fdm:{label:'Imprimantes 3D FDM', short:'FDM'}, sla:{label:'Imprimantes 3D SLA', short:'SLA'}, sls:{label:'Imprimantes 3D SLS', short:'SLS'},
   laser:{label:'Découpe laser', short:'Laser'}, usinage:{label:'Machines d’usinage', short:'Usinage'}
@@ -741,6 +764,8 @@ function onClick(ev){
   else if (a === 'hmonth'){ statsMonth = v; renderHist(); }
   else if (a === 'hrefresh'){ statsAt = Date.now(); loadStats(); }
   else if (a === 'ffinish'){ finishMachine(v); }
+  else if (a === 'mdone'){ markDone(b.dataset.m, b.dataset.t); }
+  else if (a === 'mrefresh'){ loadMaint(); }
   else if (a === 'cancel'){ draft = null; show('list'); }
   else if (a === 'edit' || a === 'copy'){
     const e = entries.find(x => x.id === b.dataset.id); if (!e) return;
@@ -763,8 +788,114 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 function show(which){
   tab = which;
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === which));
-  if (which === 'new'){ if (!draft) draft = blankDraft(); renderForm(); if (draft.picking) loadStatus(); } else if (which === 'hist'){ renderHist(); if (Date.now() - statsAt > 60000){ statsAt = Date.now(); loadStats(); } } else renderList();
+  if (which === 'new'){ if (!draft) draft = blankDraft(); renderForm(); if (draft.picking) loadStatus(); } else if (which === 'hist'){ renderHist(); if (Date.now() - statsAt > 60000){ statsAt = Date.now(); loadStats(); } } else if (which === 'maint'){ renderMaint(); if (Date.now() - maintAt > 60000) loadMaint(); } else renderList();
   window.scrollTo({top:0});
+}
+
+
+/* ---------- entretien : rappels selon les préconisations des constructeurs ---------- */
+const MC = CFG.maintenance && CFG.maintenance.machines ? CFG.maintenance : null;
+const PLANS = Object.assign({}, window.FABLAB_PLANS || {}, (MC && MC.plans) || {});
+const MS_MONTH = 30.44 * 864e5;
+let maint = lsGet(LS.maint, null), maintState = '', maintAt = 0;
+if (maint && MC && maint.asOf !== MC.asOf) maint = null;
+if (MC) $('#tab-maint').hidden = false;
+const fmtDay = d => d.toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'});
+async function loadMaint(){
+  if (!MC || !CFG.scriptUrl || !/\/exec$/.test(CFG.scriptUrl) || qrMode) return;
+  maintState = 'load'; if (tab === 'maint') renderMaint();
+  try{
+    const r = await fetch(CFG.scriptUrl + '?action=maint&since=' + encodeURIComponent(MC.asOf) + '&k=' + encodeURIComponent(getKey()), {cache:'no-store'});
+    const j = JSON.parse(await r.text());
+    if (j.ok && j.hours && j.log){ maint = {at:Date.now(), asOf:MC.asOf, hours:j.hours, log:j.log}; lsSet(LS.maint, maint); maintState = ''; }
+    else if (j.ok) maintState = 'fmt'; // ancien Code.gs : il répond « ok » sans connaître l'entretien
+    else maintState = j.error === 'cle' ? 'cle' : 'err';
+  }catch(e){ maintState = 'err'; }
+  maintAt = Date.now(); updateMaintBadge(); if (tab === 'maint') renderMaint();
+}
+function maintInfo(m){
+  const c = MC.machines[m.id]; if (!c) return null;
+  const plan = c.plan ? PLANS[c.plan] : null;
+  const extra = maint ? (maint.hours[m.name] || 0) / 60 : 0;
+  const hoursNow = (Number(c.hours) || 0) + extra;
+  const since = new Date((c.since || MC.asOf) + 'T00:00:00');
+  const log = maint ? maint.log.filter(l => l.machine === m.id) : [];
+  const tasks = plan ? plan.tasks.map(t => {
+    const l = log.find(x => x.task === t.id);
+    const lastH = l ? l.hours : 0, lastD = l ? new Date(l.at) : since;
+    const usedH = Math.max(0, hoursNow - lastH), usedM = Math.max(0, (Date.now() - lastD.getTime()) / MS_MONTH);
+    const r = Math.max(t.hours ? usedH / t.hours : 0, t.months ? usedM / t.months : 0);
+    return {t, l, lastD, usedH, usedM, r, k: r >= 1 ? 'over' : r >= 0.85 ? 'soon' : 'ok'};
+  }).sort((a, b) => b.r - a.r) : [];
+  const live = tasks.filter(x => !x.t.optional);
+  const k = !plan ? 'none' : live.some(x => x.k === 'over') ? 'over' : live.some(x => x.k === 'soon') ? 'soon' : tasks.length ? 'ok' : 'none';
+  return {c, plan, hoursNow, tasks, k, over: live.filter(x => x.k === 'over').length, soon: live.filter(x => x.k === 'soon').length};
+}
+function updateMaintBadge(){
+  if (!MC) return;
+  const n = (CFG.machines || []).reduce((a, m) => { const i = maintInfo(m); return a + (i ? i.over : 0); }, 0);
+  const b = $('#mcnt'); b.hidden = !n; b.textContent = n;
+}
+function taskHtml(m, x){
+  const t = x.t, parts = [];
+  if (t.hours) parts.push(fmtN(x.usedH) + ' / ' + t.hours + ' h');
+  if (t.months) parts.push(fmtN(x.usedM) + ' / ' + t.months + ' mois');
+  const rest = [];
+  if (t.hours) rest.push(x.usedH >= t.hours ? 'dépassé de ' + fmtN(x.usedH - t.hours) + ' h' : 'reste ' + fmtN(t.hours - x.usedH) + ' h');
+  const last = x.l ? 'Dernier entretien : ' + fmtDay(x.lastD) + ' (enregistré)' : 'Jamais enregistré : compté depuis la 1re utilisation (' + fmtDay(x.lastD) + ')';
+  const tag = x.k === 'over' ? 'En retard' : x.k === 'soon' ? 'Bientôt' : 'OK';
+  return '<div class="mt mt-' + x.k + '"><div class="row"><span><b>' + esc(t.label) + '</b>' + (t.optional ? ' <small style="display:inline">(accessoire facultatif)</small>' : '') + '</span><span class="tag">' + tag + '</span></div>' +
+    '<div class="pbar"><i style="width:' + Math.min(100, Math.round(x.r * 100)) + '%"></i></div>' +
+    '<small>' + esc(parts.join(' · ')) + (rest.length ? ' — ' + esc(rest.join(', ')) : '') + '</small><small>' + esc(last) + '</small>' +
+    '<button type="button" class="btn small" data-act="mdone" data-m="' + esc(m.id) + '" data-t="' + esc(t.id) + '">✓ Entretien fait (gestionnaire)</button></div>';
+}
+function renderMaint(){
+  bar.hidden = true;
+  let h = '';
+  if (!CFG.scriptUrl) h += '<div class="banner">⚠ <b>scriptUrl</b> est vide dans <code>config.js</code>.</div>';
+  if (maintState === 'cle') h += '<div class="banner">⚠ Code d’accès manquant ou invalide : rescanne le QR code du FabLab.</div>';
+  else if (maintState === 'fmt') h += '<div class="banner">⚠ Le script Google ne connaît pas encore l’entretien : colle le nouveau <code>Code.gs</code>, réautorise-le et redéploie une nouvelle version (voir README).</div>';
+  else if (maintState === 'err') h += '<div class="banner">⚠ Impossible de charger l’entretien' + (maint ? ' : dernières données enregistrées sur ce téléphone affichées.' : ' : seules les heures de départ sont affichées.') + ' Si le script vient d’être modifié, il faut le réautoriser et le redéployer (voir README).</div>';
+  h += '<p class="muted" style="margin:0 0 12px;font-size:.88rem">Heures cumulées au ' + esc(fmtDay(new Date(MC.asOf + 'T00:00:00'))) + ' d’après les fichiers de suivi, puis durées saisies depuis. Échéance = première atteinte entre heures et mois. ' +
+    '<button type="button" class="btn small" data-act="mrefresh" style="margin-left:4px">↻</button></p>';
+  (CFG.machines || []).forEach(m => {
+    const i = maintInfo(m); if (!i) return;
+    const lab = i.k === 'over' ? i.over + ' en retard' : i.k === 'soon' ? i.soon + ' bientôt' : i.k === 'ok' ? 'À jour' : '—';
+    h += '<details class="card mach"' + (i.k === 'over' || i.k === 'soon' ? ' open' : '') + '><summary><b>' + esc(m.name) + '<small>' + fmtN(i.hoursNow) + ' h cumulées' + (i.plan ? ' · ' + esc(i.plan.name) : '') + '</small></b>' +
+      '<span class="mst mst-' + i.k + '">' + esc(lab) + '</span></summary><div class="mbody">';
+    if (!i.plan) h += '<p class="muted" style="margin:10px 0 0">Aucun plan d’entretien renseigné pour cette machine (pas de préconisation constructeur chiffrée enregistrée).</p>';
+    else{
+      if (!i.tasks.length) h += '<p class="muted" style="margin:10px 0 0">Aucune échéance chiffrée chez le constructeur.</p>';
+      h += i.tasks.map(x => taskHtml(m, x)).join('');
+      if (i.plan.info && i.plan.info.length) h += '<ul class="minfo">' + i.plan.info.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>';
+      if (i.plan.source) h += '<small class="muted" style="display:block;margin-top:10px">Source : ' + esc(i.plan.source) + '</small>';
+    }
+    h += '</div></details>';
+  });
+  view.innerHTML = h;
+}
+async function markDone(mid, tid){
+  const m = machineById(mid), i = m && maintInfo(m), x = i && i.tasks.find(y => y.t.id === tid); if (!x) return;
+  let code = ''; try{ code = sessionStorage.getItem(LS.mcode) || ''; }catch(e){}
+  if (!code) code = prompt('Code gestionnaire (pour enregistrer cet entretien) :') || '';
+  if (!code) return;
+  if (!confirm('Enregistrer « ' + x.t.label + ' » comme fait aujourd’hui sur ' + m.name + ' ?')) return;
+  try{
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 25000);
+    let res;
+    try{ res = await fetch(CFG.scriptUrl, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({k:getKey(), g:code, action:'maint_done', machine:m.id, task:tid, label:x.t.label, hours:Math.round(i.hoursNow * 10) / 10}), signal:ctl.signal}); }
+    finally{ clearTimeout(to); }
+    const raw = await res.text(); let j;
+    try{ j = JSON.parse(raw); }
+    catch(pe){ throw Object.assign(new Error('réponse non JSON'), {status:res.status, snippet:raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160)}); }
+    if (!j.ok){
+      if (j.error === 'code'){ try{ sessionStorage.removeItem(LS.mcode); }catch(e){} toast('Code gestionnaire incorrect'); }
+      else toast(j.error === 'cle' ? 'Code d’accès invalide : rescanne le QR code du FabLab' : j.error === 'non-configure' ? 'CODE_GESTIONNAIRE n’est pas défini dans le script Google' : 'Le script a refusé : ' + j.error);
+      return;
+    }
+    try{ sessionStorage.setItem(LS.mcode, code); }catch(e){}
+    toast('Entretien enregistré ✓'); loadMaint();
+  }catch(err){ toast(await describeError(err)); }
 }
 
 /* ---------- page des QR codes ---------- */
@@ -821,12 +952,13 @@ dlg.addEventListener('click', ev => {
 });
 
 /* ---------- démarrage ---------- */
+$('#foot').textContent = 'v' + APP_VERSION;
 $('#ttl').innerHTML = esc(CFG.titre || 'FabLab') + '<small>Utilisation des machines</small>';
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 if (qrMode){ renderQR(); }
 else{
   if (preMachine && machineById(preMachine)) draft = blankDraft(preMachine);
-  show('new'); setBadge(); loadStockMaterials(); sync(); loadStatus();
+  show('new'); setBadge(); loadStockMaterials(); sync(); loadStatus(); updateMaintBadge(); loadMaint();
 }
 })();
 </script>
