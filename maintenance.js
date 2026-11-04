@@ -7,7 +7,7 @@ window.FABLAB_PLANS = {
 
   ultimaker3: {
     name: 'Ultimaker 3',
-    source: 'Calendrier UltiMaker (série S / UM2+, base 1 500 h par an) appliqué à l’UM3 : pas de calendrier propre à l’UM3 trouvé.',
+    source: 'Calendrier UltiMaker (série S / UM2+, base 1 500 h par an) appliqué à l’UM3.',
     tasks: [
       {id:'clean',  label:'Nettoyer l’imprimante (plateau, buses, tubes Bowden, intérieur)', months:1},
       {id:'xylube', label:'Lubrifier les axes X et Y', months:1},
@@ -45,7 +45,7 @@ window.FABLAB_PLANS = {
 
   upboxplus: {
     name: 'UP BOX+',
-    source: 'Tiertime : filtre HEPA à changer toutes les 300 h ou 6 mois.',
+    source: 'Tiertime.',
     tasks: [
       {id:'hepa', label:'Remplacer le filtre HEPA', hours:300, months:6}
     ],
@@ -81,18 +81,19 @@ window.FABLAB_PLANS = {
 
   lisax: {
     name: 'Sinterit Lisa X',
-    source: 'Manuel Sinterit Lisa X : vitre du laser 80 h, cordon du recoater 200 h, joints des lits 200 h. L’écran MAINTENANCE de la machine a son propre minuteur : il fait foi.',
+    source: 'Manuel Sinterit Lisa X.',
     tasks: [
       {id:'glass', label:'Vitre du laser : entretien', hours:80},
       {id:'cord',  label:'Cordon du recoater : contrôle / remplacement', hours:200},
       {id:'seals', label:'Joints du lit d’impression et du lit d’alimentation : contrôle / remplacement', hours:200}
     ],
-    info: ['Les minuteurs de la machine (écran MAINTENANCE, remis à zéro après chaque opération) sont la référence pour les autres composants.']
+    info: ['Les minuteurs de la machine (écran MAINTENANCE, remis à zéro après chaque opération) sont la référence pour les autres composants.',
+          'L’écran MAINTENANCE de la machine a son propre minuteur : il fait foi.']
   },
 
   trotec: {
     name: 'Trotec Speedy 400 flexx',
-    source: 'Préconisations Trotec : lentille chaque jour, miroirs latéraux chaque mois, filtre selon l’alerte du logiciel.',
+    source: 'Préconisations Trotec.',
     tasks: [
       {id:'mirrors', label:'Contrôler / nettoyer les miroirs latéraux', months:1},
       {id:'pfiltre', label:'Changer le préfiltre', month:3},
@@ -106,7 +107,7 @@ window.FABLAB_PLANS = {
 
   form4: {
     name: 'Formlabs Form 4',
-    source: 'Formlabs, « Schedule of maintenance (Form 4 generation) » et « Resin tank lifetime » : tâches à faire entre les impressions ou au besoin, sans fréquence en jours ou en heures.',
+    source: 'Formlabs, « Schedule of maintenance (Form 4 generation) » et « Resin tank lifetime ».',
     tasks: [],
     info: [
       'Entre les impressions : inspecter et nettoyer le plateau (IPA, grattoir) ; inspecter la cartouche de résine (fuites, date de péremption ≈ 24 mois) ; vérifier la cuve (résine durcie, débris).',
@@ -118,7 +119,7 @@ window.FABLAB_PLANS = {
 
   tourotmt: {
     name: 'Tour OTMT OT222450',
-    source: 'Manuel OTMT OT222450 : aucun calendrier d’entretien. Il signale 13 godets à huile (lubrification) et de graisser légèrement les surfaces usinées.',
+    source: 'Manuel OTMT OT222450.',
     tasks: [],
     info: [
       'Lubrifier régulièrement les godets à huile et graisser légèrement les surfaces usinées (glissières, vis-mère).',
