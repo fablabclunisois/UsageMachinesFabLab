@@ -15,12 +15,12 @@ window.FABLAB_PLANS = {
       {id:'fan',    label:'Nettoyer le ventilateur avant de la tête d’impression', months:3, hours:300},
       {id:'lead',   label:'Lubrifier la vis-mère de l’axe Z', months:3, hours:300},
       {id:'play',   label:'Vérifier le jeu des axes X et Y', months:6, hours:700},
-      {id:'feeder', label:'Nettoyer les dévidoirs (feeders)', months:6, hours:700},
+      {id:'feeder', label:'Nettoyer les extrudeurs (feeders)', months:6, hours:700},
       {id:'zlube',  label:'Lubrifier les axes Z', months:6, hours:700},
-      {id:'gear',   label:'Lubrifier l’engrenage du dévidoir', months:12, hours:1500},
+      {id:'gear',   label:'Lubrifier l’engrenage des extrudeurs', months:12, hours:1500},
       {id:'bowden', label:'Vérifier les tubes Bowden (remplacer si abîmés)', months:12, hours:1500}
     ],
-    info: ['Nettoyage des print cores : selon le type de core et les matériaux (calendrier UltiMaker séparé).']
+    info: ['Nettoyage des print cores : selon le type de core et les matériaux.']
   },
 
   ultimakerS: {
@@ -34,27 +34,27 @@ window.FABLAB_PLANS = {
       {id:'cover',  label:'Vérifier la gaine de buse (nozzle cover)', months:3, hours:300},
       {id:'lead',   label:'Lubrifier la vis-mère de l’axe Z', months:3, hours:300},
       {id:'play',   label:'Vérifier le jeu des axes X et Y', months:6, hours:700},
-      {id:'feeder', label:'Nettoyer les dévidoirs (feeders)', months:6, hours:700},
+      {id:'feeder', label:'Nettoyer les extrudeurs (feeders)', months:6, hours:700},
       {id:'zlube',  label:'Lubrifier les axes Z', months:6, hours:700},
-      {id:'gear',   label:'Lubrifier l’engrenage du dévidoir', months:12, hours:1500},
+      {id:'gear',   label:'Lubrifier l’engrenage des extrudeurs', months:12, hours:1500},
       {id:'bowden', label:'Vérifier les tubes Bowden (remplacer si abîmés)', months:12, hours:1500},
-      {id:'airfilter', label:'Remplacer le filtre de l’Air Manager (si équipée)', hours:1500, optional:true}
+      {id:'airfilter', label:'Remplacer le filtre de l’Air Manager ', hours:1500}
     ],
-    info: ['Nettoyage des print cores : selon le type de core et les matériaux (calendrier UltiMaker séparé).']
+    info: ['Nettoyage des print cores : selon le type de core et les matériaux.']
   },
 
   upboxplus: {
     name: 'UP BOX+',
-    source: 'Tiertime : filtre HEPA à changer toutes les 300 h ou 6 mois. Pas d’autre échéance chiffrée trouvée.',
+    source: 'Tiertime : filtre HEPA à changer toutes les 300 h ou 6 mois.',
     tasks: [
       {id:'hepa', label:'Remplacer le filtre HEPA', hours:300, months:6}
     ],
-    info: ['Pas d’autre échéance chiffrée trouvée chez le constructeur (nettoyage de la buse et du plateau selon l’état).']
+    info: ['Nettoyage de la buse et du plateau selon l’état.']
   },
 
   bambup1: {
     name: 'Bambu Lab P1S',
-    source: 'Wiki Bambu Lab, page de maintenance de la P1P (la page P1S n’était pas accessible ; mêmes tiges et vis-mères).',
+    source: 'Wiki Bambu Lab, page de maintenance de la P1P.',
     tasks: [
       {id:'xrods',  label:'Contrôler et nettoyer les tiges X (alcool isopropylique, sans graisse) et les tiges Y/Z (poussière)', months:1},
       {id:'lead',   label:'Nettoyer puis graisser les vis-mères de l’axe Z', months:3},
@@ -62,15 +62,15 @@ window.FABLAB_PLANS = {
     ],
     info: [
       'Chaque semaine : dépoussiérer les ventilateurs (hotend, face avant, auxiliaire).',
-      'Contrôler la lame du coupe-filament tous les 3 à 5 rouleaux (1 à 2 rouleaux si matériaux abrasifs).',
-      'Tube PTFE : contrôle après ~10 rouleaux (~5 si matériaux abrasifs). Embout de nettoyage de buse : vérifier avant chaque impression.',
+      'Contrôler la lame du coupe-filament tous les 3 à 5 bobines (1 à 2 bobines si matériaux abrasifs).',
+      'Tube PTFE : contrôle après ~10 bobines (~5 si matériaux abrasifs). Embout de nettoyage de buse : vérifier avant chaque impression.',
       'Selon l’état : dépoussiérer l’engrenage de l’extrudeur, changer le manchon silicone du hotend, nettoyer la buse.'
     ]
   },
 
   uprintse: {
     name: 'uPrint SE',
-    source: 'Guide Stratasys uPrint SE Plus (le SE est très proche). Les heures sont des heures de fonctionnement.',
+    source: 'Guide Stratasys uPrint SE Plus.',
     tasks: [
       {id:'wipe',   label:'Remplacer l’ensemble d’essuyage des buses (tip wipe)', hours:500},
       {id:'shield', label:'Remplacer les protections de buses (tip shields)', hours:500},
@@ -94,11 +94,13 @@ window.FABLAB_PLANS = {
     name: 'Trotec Speedy 400 flexx',
     source: 'Préconisations Trotec : lentille chaque jour, miroirs latéraux chaque mois, filtre selon l’alerte du logiciel.',
     tasks: [
-      {id:'mirrors', label:'Contrôler / nettoyer les miroirs latéraux', months:1}
+      {id:'mirrors', label:'Contrôler / nettoyer les miroirs latéraux', months:1},
+      {id:'pfiltre', label:'Changer le préfiltre', month:3},
+      {id:'filtre',label:'Changer le filtre', month:6},
+      {id:'cfiltre', label:'Changer le charbon du filtre', hours:1000}
     ],
     info: [
-      'Chaque jour : contrôler et nettoyer la lentille de focalisation.',
-      'Filtre d’aspiration : à changer quand le logiciel de la machine l’indique.'
+      'Chaque jour : contrôler et nettoyer la lentille de focalisation.'
     ]
   },
 
@@ -116,12 +118,11 @@ window.FABLAB_PLANS = {
 
   tourotmt: {
     name: 'Tour OTMT OT222450',
-    source: 'Manuel OTMT OT222450 : aucun calendrier d’entretien. Il signale 13 godets à huile (lubrification), de ne pas démonter le moteur sans balai (contacter le distributeur) et de graisser légèrement les surfaces usinées.',
+    source: 'Manuel OTMT OT222450 : aucun calendrier d’entretien. Il signale 13 godets à huile (lubrification) et de graisser légèrement les surfaces usinées.',
     tasks: [],
     info: [
-      'Pas d’intervalle chiffré dans le manuel : lubrifier régulièrement les godets à huile et graisser légèrement les surfaces usinées (glissières, vis-mère).',
-      'Ne pas démonter le moteur sans balai : contacter le distributeur pour tout entretien ou réparation du moteur.',
-      'Garantie : 1 an, réduite de moitié si la machine travaille jour et nuit.'
+      'Lubrifier régulièrement les godets à huile et graisser légèrement les surfaces usinées (glissières, vis-mère).',
+      'Ne pas démonter le moteur sans balai : contacter le distributeur pour tout entretien ou réparation du moteur.'
     ]
   }
 
@@ -135,7 +136,20 @@ window.FABLAB_PLANS = {
     ],
     info: [
       'Tous les jours : contrôler les organes de sécurité, nettoyer la machine (aspirateur, white-spirit sur les parties peintes, eau claire sur les vitres), purger les condensats pneumatiques.',
-      'Chaque semaine (table à dépression) : nettoyer le filtre et contrôler le niveau d’huile de la pompe à vide.',
+      'Vérifier régulièrement l’état des pinces ER20.'
+    ]
+  }
+   
+   ,charly4u: {
+    name: 'Charlyrobot Charly 4U',
+    source: 'Mode d’emploi Charly 2U, § 8.6 « Fréquence de maintenance » (axes) et § 7.2 (révision de la broche HF : 2000 h).',
+    tasks: [
+      {id:'axclean', label:'Nettoyer les axes', months:1},
+      {id:'axgrease', label:'Graisser les axes (pompe à graisse, 2 points par axe ; graisse Charlyrobot réf. 22019 ou BP PREP-00)', months:6},
+      {id:'spindle', label:'Révision complète de la broche HF', hours:2000}
+    ],
+    info: [
+      'Tous les jours : contrôler les organes de sécurité, nettoyer la machine (aspirateur, white-spirit sur les parties peintes, eau claire sur les vitres), purger les condensats pneumatiques.',
       'Vérifier régulièrement l’état des pinces ER20.'
     ]
   }
