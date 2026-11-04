@@ -96,8 +96,8 @@ window.FABLAB_PLANS = {
     source: 'Préconisations Trotec.',
     tasks: [
       {id:'mirrors', label:'Contrôler / nettoyer les miroirs latéraux', months:1},
-      {id:'pfiltre', label:'Changer le préfiltre', month:3},
-      {id:'filtre',label:'Changer le filtre', month:6},
+      {id:'pfiltre', label:'Changer le préfiltre', months:3},
+      {id:'filtre',label:'Changer le filtre', months:6},
       {id:'cfiltre', label:'Changer le charbon du filtre', hours:1000}
     ],
     info: [
