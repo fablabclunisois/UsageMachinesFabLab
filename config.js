@@ -68,7 +68,7 @@ window.FABLAB_CONFIG = {
       Lisa:   { plan: 'lisax',      hours: 29.0,   since: '2026-03-19' },
       Trotec: { plan: 'trotec',     hours: 452.1,  since: '2025-01-30' },
       PtChar: { plan: 'charly2u',  hours: 0 },
-      GdChar: { hours: 0 },
+      GdChar: { plan: 'charly4u',  hours: 0 },
       Tour:   { plan: 'tourotmt',  hours: 0 }
     }
   }
