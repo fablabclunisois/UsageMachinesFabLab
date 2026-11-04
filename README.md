@@ -64,9 +64,9 @@ correction…), boutons rapides *Terminé* / *Échec*, et *Relancer* (copie d'un
 Il n'y a pas de suppression côté étudiant : on passe en « Annulé » pour que l'historique reste complet.
 
 **État des machines en direct** : sur la page d'accueil, chaque machine affiche *Libre*, *En cours · fin prévue 14:30* ou
-*Fin prévue dépassée · à confirmer* (rafraîchi à l'ouverture et chaque minute). Il se calcule à partir des saisies au statut
+*Libre* dès la fin prévue (rafraîchi à l'ouverture et chaque minute). Il se calcule à partir des saisies au statut
 « Lancé » : heure de lancement + durée. Une machine redevient « Libre » quand l'étudiant appuie sur *Terminé* / *Échec*,
-ou une fois la durée écoulée (elle est alors signalée « à confirmer »). Le script ne renvoie que machine, lancement et durée,
+ou automatiquement une fois la fin prévue passée (plus de confirmation demandée). Le script ne renvoie que machine, lancement et durée,
 jamais de nom ni de remarque. Pour un lancement fait hors réseau, l'état n'apparaît chez les autres qu'après l'envoi.
 
 Sans réseau, la saisie est gardée sur le téléphone puis envoyée automatiquement au retour de la connexion

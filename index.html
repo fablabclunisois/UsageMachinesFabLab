@@ -213,7 +213,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
   </div>
 </header>
 <main id="view"></main>
-<footer id="foot">v2.2</footer>
+<footer id="foot">v2.7</footer>
 <div class="savebar" id="bar" hidden></div>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="themeDlg">
@@ -228,7 +228,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 <script>
 (function(){
 'use strict';
-const APP_VERSION = '2.2'; // à changer ici, dans le pied de page (#foot) et dans sw.js à chaque modification
+const APP_VERSION = '2.7'; // à changer ici, dans le pied de page (#foot) et dans sw.js à chaque modification
 const CFG = window.FABLAB_CONFIG || {machines:[]};
 const LS = {stats:'fabmach.stats', theme:'fabmach.theme', entries:'fabmach.entries', key:'fabmach.key', user:'fabmach.lastUser', stock:'fabmach.stockMat', maint:'fabmach.maint', mcode:'fabmach.mcode'};
 const TYPES = {
@@ -387,11 +387,13 @@ function machineState(m){
   if (!busyAt && !entries.some(e => e._dirty)) return null;
   const list = busy.filter(b => b.machine === m.name)
     .concat(entries.filter(e => e._dirty && e.status === 'Lancé' && e.machineId === m.id).map(e => ({launch:e.launch, duration:e.duration})));
-  if (!list.length) return busyAt ? {k:'free', txt:'Libre'} : null;
-  const last = list.reduce((a, b) => new Date(b.launch) > new Date(a.launch) ? b : a);
+  // Une utilisation dont la fin prévue est passée est considérée comme terminée : plus de confirmation demandée.
+  const now = Date.now(), live = list.filter(x => new Date(x.launch).getTime() + x.duration * 60000 > now);
+  if (!live.length) return busyAt || list.length ? {k:'free', txt:'Libre'} : null;
+  const last = live.reduce((a, b) => new Date(b.launch) > new Date(a.launch) ? b : a);
   const end = new Date(new Date(last.launch).getTime() + last.duration * 60000);
   const day = end.toDateString() === new Date().toDateString() ? '' : end.toLocaleDateString('fr-FR', {weekday:'short'}) + ' ';
-  return end > new Date() ? {k:'busy', txt:'En cours · fin prévue ' + day + hhmm(end)} : {k:'over', txt:'Fin prévue dépassée (' + day + hhmm(end) + ') · à confirmer'};
+  return {k:'busy', txt:'En cours · fin prévue ' + day + hhmm(end)};
 }
 const stateHtml = m => { const s = machineState(m); return s ? '<span class="st st-' + s.k + '">' + esc(s.txt) + '</span>' : ''; };
 
